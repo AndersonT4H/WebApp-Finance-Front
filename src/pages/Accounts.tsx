@@ -5,11 +5,13 @@ import {
   Edit, 
   Trash2, 
   CreditCard,
-  Search
+  Search,
+  AlertTriangle
 } from 'lucide-react';
 import { accountsApi } from '../services/api';
 import { Account } from '../types';
 import toast from 'react-hot-toast';
+import Modal from '../components/Modal';
 
 const Accounts: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -17,6 +19,13 @@ const Accounts: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('');
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    account: Account | null;
+  }>({
+    isOpen: false,
+    account: null
+  });
 
   useEffect(() => {
     loadAccounts();
@@ -60,14 +69,27 @@ const Accounts: React.FC = () => {
     setFilteredAccounts(filtered);
   };
 
-  const handleDeleteAccount = async (id: number) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta conta?')) {
-      return;
-    }
+  const openDeleteModal = (account: Account) => {
+    setDeleteModal({
+      isOpen: true,
+      account
+    });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({
+      isOpen: false,
+      account: null
+    });
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deleteModal.account) return;
 
     try {
-      await accountsApi.delete(id);
+      await accountsApi.delete(deleteModal.account.id);
       toast.success('Conta excluída com sucesso');
+      closeDeleteModal();
       loadAccounts();
     } catch (error) {
       toast.error('Erro ao excluir conta');
@@ -121,8 +143,12 @@ const Accounts: React.FC = () => {
 
       {/* Filters */}
       <div className="card dark:bg-gray-800 dark:border-gray-700">
+
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Buscar
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-300" />
               <input
@@ -135,6 +161,9 @@ const Accounts: React.FC = () => {
             </div>
           </div>
           <div className="sm:w-48">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Tipo
+            </label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
@@ -204,7 +233,7 @@ const Accounts: React.FC = () => {
                       <Edit className="h-4 w-4 inline" />
                     </Link>
                     <button
-                      onClick={() => handleDeleteAccount(account.id)}
+                      onClick={() => openDeleteModal(account)}
                       className="text-danger-600 dark:text-danger-400 hover:text-danger-900 dark:hover:text-danger-200"
                     >
                       <Trash2 className="h-4 w-4 inline" />
@@ -219,10 +248,10 @@ const Accounts: React.FC = () => {
         {filteredAccounts.length === 0 && (
           <div className="text-center py-8">
             <CreditCard className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
               {(accounts || []).length === 0 ? 'Nenhuma conta encontrada' : 'Nenhuma conta corresponde aos filtros'}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {(accounts || []).length === 0 
                 ? 'Comece criando sua primeira conta.' 
                 : 'Tente ajustar os filtros de busca.'
@@ -242,6 +271,50 @@ const Accounts: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        title="Confirmar Exclusão"
+        size="sm"
+      >
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 mb-4">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+          </div>
+          
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Excluir Conta
+          </h3>
+          
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Tem certeza que deseja excluir a conta{' '}
+            <span className="font-medium text-gray-900 dark:text-gray-100">
+              "{deleteModal.account?.name}"
+            </span>?
+            <br />
+            <span className="text-red-600 dark:text-red-400">
+              Esta ação não pode ser desfeita.
+            </span>
+          </p>
+          
+          <div className="flex justify-center space-x-3">
+            <button
+              onClick={closeDeleteModal}
+              className="btn-secondary"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleDeleteAccount}
+              className="btn-danger"
+            >
+              Excluir Conta
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

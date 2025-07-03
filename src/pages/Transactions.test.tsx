@@ -24,13 +24,6 @@ jest.mock('react-hot-toast', () => ({
   error: jest.fn(),
 }));
 
-// Mock do window.confirm
-const mockConfirm = jest.fn();
-Object.defineProperty(window, 'confirm', {
-  value: mockConfirm,
-  writable: true,
-});
-
 beforeAll(() => {
   jest.spyOn(console, 'warn').mockImplementation((msg) => {
     if (
@@ -295,7 +288,6 @@ describe('Transactions', () => {
     const { transactionsApi } = require('../services/api');
     const toast = require('react-hot-toast');
     
-    mockConfirm.mockReturnValue(true);
     transactionsApi.delete.mockResolvedValue({});
 
     renderTransactions();
@@ -306,14 +298,19 @@ describe('Transactions', () => {
 
     // Encontra o botão de excluir da primeira transação
     const deleteButtons = screen.getAllByRole('button');
-    fireEvent.click(deleteButtons[0]);
+    fireEvent.click(deleteButtons[deleteButtons.length - 1]); // Último botão é o de excluir
 
+    // Aguarda o modal aparecer
     await waitFor(() => {
-      expect(mockConfirm).toHaveBeenCalledWith('Tem certeza que deseja excluir esta transação?');
+      expect(screen.getByText('Confirmar Exclusão')).toBeInTheDocument();
     });
 
+    // Clica no botão de confirmar exclusão
+    const confirmButton = screen.getByRole('button', { name: 'Excluir Transação' });
+    fireEvent.click(confirmButton);
+
     await waitFor(() => {
-      expect(transactionsApi.delete).toHaveBeenCalledWith(1);
+      expect(transactionsApi.delete).toHaveBeenCalledWith(3);
     });
 
     await waitFor(() => {
@@ -323,8 +320,6 @@ describe('Transactions', () => {
 
   it('deve cancelar exclusão quando usuário não confirma', async () => {
     const { transactionsApi } = require('../services/api');
-    
-    mockConfirm.mockReturnValue(false);
 
     renderTransactions();
 
@@ -334,11 +329,16 @@ describe('Transactions', () => {
 
     // Encontra o botão de excluir da primeira transação
     const deleteButtons = screen.getAllByRole('button');
-    fireEvent.click(deleteButtons[0]);
+    fireEvent.click(deleteButtons[deleteButtons.length - 1]); // Último botão é o de excluir
 
+    // Aguarda o modal aparecer
     await waitFor(() => {
-      expect(mockConfirm).toHaveBeenCalledWith('Tem certeza que deseja excluir esta transação?');
+      expect(screen.getByText('Confirmar Exclusão')).toBeInTheDocument();
     });
+
+    // Clica no botão de cancelar
+    const cancelButton = screen.getByText('Cancelar');
+    fireEvent.click(cancelButton);
 
     expect(transactionsApi.delete).not.toHaveBeenCalled();
   });
@@ -347,7 +347,6 @@ describe('Transactions', () => {
     const { transactionsApi } = require('../services/api');
     const toast = require('react-hot-toast');
     
-    mockConfirm.mockReturnValue(true);
     transactionsApi.delete.mockRejectedValue(new Error('Erro na API'));
 
     renderTransactions();
@@ -358,7 +357,16 @@ describe('Transactions', () => {
 
     // Encontra o botão de excluir da primeira transação
     const deleteButtons = screen.getAllByRole('button');
-    fireEvent.click(deleteButtons[0]);
+    fireEvent.click(deleteButtons[deleteButtons.length - 1]); // Último botão é o de excluir
+
+    // Aguarda o modal aparecer
+    await waitFor(() => {
+      expect(screen.getByText('Confirmar Exclusão')).toBeInTheDocument();
+    });
+
+    // Clica no botão de confirmar exclusão
+    const confirmButton = screen.getByRole('button', { name: 'Excluir Transação' });
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Erro ao excluir transação');

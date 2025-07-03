@@ -5,7 +5,8 @@ import {
   CreditCard, 
   Receipt, 
   ArrowLeftRight, 
-  TrendingUp
+  TrendingUp,
+  BarChart3
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -36,6 +37,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Contas', href: '/accounts', icon: CreditCard },
     { name: 'Transações', href: '/transactions', icon: Receipt },
     { name: 'Transferências', href: '/transfer', icon: ArrowLeftRight },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   ];
 
   const isActive = (path: string) => {

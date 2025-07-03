@@ -132,7 +132,7 @@ const TransactionForm: React.FC = () => {
               <option value="">Selecione um tipo</option>
               <option value="Débito">Débito</option>
               <option value="Crédito">Crédito</option>
-              <option value="Transferência">Transferência</option>
+              {/* <option value="Transferência">Transferência</option> */}
             </select>
             {errors.type && (
               <p className="mt-1 text-sm text-danger-600">{errors.type.message}</p>

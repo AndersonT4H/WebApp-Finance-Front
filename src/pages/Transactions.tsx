@@ -8,11 +8,13 @@ import {
   Search,
   ArrowUpRight,
   ArrowDownRight,
-  ArrowLeftRight
+  ArrowLeftRight,
+  AlertTriangle
 } from 'lucide-react';
 import { transactionsApi, accountsApi } from '../services/api';
 import { Transaction, Account } from '../types';
 import toast from 'react-hot-toast';
+import Modal from '../components/Modal';
 
 const Transactions: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -24,6 +26,13 @@ const Transactions: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    transaction: Transaction | null;
+  }>({
+    isOpen: false,
+    transaction: null
+  });
 
   useEffect(() => {
     loadData();
@@ -90,14 +99,27 @@ const Transactions: React.FC = () => {
     setFilteredTransactions(filtered);
   };
 
-  const handleDeleteTransaction = async (id: number) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta transação?')) {
-      return;
-    }
+  const openDeleteModal = (transaction: Transaction) => {
+    setDeleteModal({
+      isOpen: true,
+      transaction
+    });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({
+      isOpen: false,
+      transaction: null
+    });
+  };
+
+  const handleDeleteTransaction = async () => {
+    if (!deleteModal.transaction) return;
 
     try {
-      await transactionsApi.delete(id);
+      await transactionsApi.delete(deleteModal.transaction.id);
       toast.success('Transação excluída com sucesso');
+      closeDeleteModal();
       loadData();
     } catch (error) {
       toast.error('Erro ao excluir transação');
@@ -171,8 +193,12 @@ const Transactions: React.FC = () => {
 
       {/* Filters */}
       <div className="card dark:bg-gray-800 dark:border-gray-700">
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Buscar
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-300" />
               <input
@@ -185,6 +211,9 @@ const Transactions: React.FC = () => {
             </div>
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Conta
+            </label>
             <select
               value={filterAccount}
               onChange={(e) => setFilterAccount(e.target.value)}
@@ -199,6 +228,9 @@ const Transactions: React.FC = () => {
             </select>
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Tipo
+            </label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
@@ -211,6 +243,9 @@ const Transactions: React.FC = () => {
             </select>
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Data Inicial
+            </label>
             <input
               type="date"
               value={startDate}
@@ -219,6 +254,9 @@ const Transactions: React.FC = () => {
             />
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Data Final
+            </label>
             <input
               type="date"
               value={endDate}
@@ -300,7 +338,7 @@ const Transactions: React.FC = () => {
                       <Edit className="h-4 w-4 inline" />
                     </Link>
                     <button
-                      onClick={() => handleDeleteTransaction(transaction.id)}
+                      onClick={() => openDeleteModal(transaction)}
                       className="text-danger-600 dark:text-danger-400 hover:text-danger-900 dark:hover:text-danger-200"
                     >
                       <Trash2 className="h-4 w-4 inline" />
@@ -315,10 +353,10 @@ const Transactions: React.FC = () => {
         {filteredTransactions.length === 0 && (
           <div className="text-center py-8">
             <Receipt className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
               {transactions.length === 0 ? 'Nenhuma transação encontrada' : 'Nenhuma transação corresponde aos filtros'}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {transactions.length === 0 
                 ? 'Comece registrando sua primeira transação.' 
                 : 'Tente ajustar os filtros de busca.'
@@ -338,6 +376,50 @@ const Transactions: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        title="Confirmar Exclusão"
+        size="sm"
+      >
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 mb-4">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+          </div>
+          
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Excluir Transação
+          </h3>
+          
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Tem certeza que deseja excluir a transação{' '}
+            <span className="font-medium text-gray-900 dark:text-gray-100">
+              "{deleteModal.transaction?.description}"
+            </span>?
+            <br />
+            <span className="text-red-600 dark:text-red-400">
+              Esta ação não pode ser desfeita.
+            </span>
+          </p>
+          
+          <div className="flex justify-center space-x-3">
+            <button
+              onClick={closeDeleteModal}
+              className="btn-secondary"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleDeleteTransaction}
+              className="btn-danger"
+            >
+              Excluir Transação
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

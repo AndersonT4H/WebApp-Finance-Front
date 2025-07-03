@@ -31,6 +31,7 @@ jest.mock('react-hot-toast', () => ({
   error: jest.fn(),
 }));
 
+// Mock do console.warn para evitar mensagem no console
 beforeAll(() => {
   jest.spyOn(console, 'warn').mockImplementation((msg) => {
     if (
@@ -43,10 +44,12 @@ beforeAll(() => {
   });
 });
 
+// Restaura o console.warn
 afterAll(() => {
   jest.restoreAllMocks();
 });
 
+// Mock do useNavigate para evitar navegação real
 describe('Dashboard', () => {
   const mockAccounts = [
     {
@@ -83,6 +86,7 @@ describe('Dashboard', () => {
     }
   };
 
+  // Mock das transações
   const mockTransactions = [
     {
       id: 1,
@@ -102,10 +106,12 @@ describe('Dashboard', () => {
     }
   ];
 
+  // Limpa os mocks antes de cada teste
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
+  // Teste para verificar se o título do dashboard é exibido
   it('deve renderizar o título do dashboard', async () => {
     const { accountsApi, transactionsApi } = require('../services/api');
     

@@ -5,6 +5,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { accountsApi } from '../services/api';
 import { CreateAccountData, UpdateAccountData, Account } from '../types';
 import toast from 'react-hot-toast';
+import { NumericFormat } from 'react-number-format';
 
 const AccountForm: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +17,9 @@ const AccountForm: React.FC = () => {
     register,
     handleSubmit,
     formState: { errors },
-    setValue
+    setValue,
+    watch,
+    trigger
   } = useForm<CreateAccountData>();
 
   const isEditing = Boolean(id);
@@ -155,19 +158,29 @@ const AccountForm: React.FC = () => {
               <label htmlFor="initialBalance" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Saldo Inicial (opcional)
               </label>
-              <input
-                type="number"
+              <NumericFormat
                 id="initialBalance"
-                step="0.01"
-                min="0"
-                {...register('initialBalance', {
-                  min: {
-                    value: 0,
-                    message: 'Saldo inicial deve ser maior ou igual a zero'
-                  }
-                })}
+                thousandSeparator="."
+                decimalSeparator="," 
+                prefix="R$ "
+                decimalScale={2}
+                fixedDecimalScale
+                allowNegative={false}
                 className={`input-field dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700 ${errors.initialBalance ? 'border-danger-500' : ''}`}
                 placeholder="0,00"
+                value={watch('initialBalance') ?? ''}
+                onValueChange={(values) => {
+                  const value = values.floatValue || undefined;
+                  setValue('initialBalance', value);
+                  // Validar o campo após mudança
+                  if (value !== undefined) {
+                    trigger('initialBalance');
+                  }
+                }}
+                onBlur={() => {
+                  trigger('initialBalance');
+                }}
+                disabled={loading}
               />
               {errors.initialBalance && (
                 <p className="mt-1 text-sm text-danger-600 dark:text-danger-400">{errors.initialBalance.message}</p>

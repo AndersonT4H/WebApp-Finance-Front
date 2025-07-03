@@ -93,12 +93,14 @@ describe('TransactionForm', () => {
     account: { id: 1, name: 'Conta Corrente' }
   };
 
+  // Limpa os mocks antes de cada teste
   beforeEach(() => {
     jest.clearAllMocks();
     const { accountsApi } = require('../services/api');
     accountsApi.getAll.mockResolvedValue(mockAccounts);
   });
 
+  // Função para renderizar o formulário de transação
   const renderTransactionForm = (path = '/transactions/new') => {
     return render(
       <MemoryRouter initialEntries={[path]}>
@@ -110,13 +112,16 @@ describe('TransactionForm', () => {
     );
   };
 
+  // Teste para verificar se o formulário de nova transação é exibido
   it('deve renderizar o formulário de nova transação', async () => {
     renderTransactionForm();
 
+  // Verifica se o título do formulário é exibido
     await waitFor(() => {
       expect(screen.getByText('Nova Transação')).toBeInTheDocument();
     });
 
+  // Verifica se os campos obrigatórios são exibidos
     expect(screen.getByText('Tipo da Transação *')).toBeInTheDocument();
     expect(screen.getByText('Conta *')).toBeInTheDocument();
     expect(screen.getByText('Valor *')).toBeInTheDocument();
@@ -124,6 +129,7 @@ describe('TransactionForm', () => {
     expect(screen.getByText('Data da Transação *')).toBeInTheDocument();
   });
 
+  // Teste para verificar se as contas disponíveis são exibidas
   it('deve carregar e exibir as contas disponíveis', async () => {
     renderTransactionForm();
 
@@ -136,9 +142,11 @@ describe('TransactionForm', () => {
     });
   });
 
+  // Teste para verificar se os campos obrigatórios são exibidos
   it('deve validar campos obrigatórios', async () => {
     renderTransactionForm();
 
+    // Verifica se o botão de criação de transação é exibido
     await waitFor(() => {
       expect(screen.getByText('Criar Transação')).toBeInTheDocument();
     });
@@ -152,22 +160,27 @@ describe('TransactionForm', () => {
       expect(screen.getByText('Tipo da transação é obrigatório')).toBeInTheDocument();
     });
     
+    // Verifica se a mensagem de erro para o tipo da transação é exibida
     await waitFor(() => {
       expect(screen.getByText('Conta é obrigatória')).toBeInTheDocument();
     });
     
+    // Verifica se a mensagem de erro para a conta é exibida
     await waitFor(() => {
       expect(screen.getByText('Descrição é obrigatória')).toBeInTheDocument();
     });
     
+    // Verifica se a mensagem de erro para a data da transação é exibida
     await waitFor(() => {
       expect(screen.getByText('Data da transação é obrigatória')).toBeInTheDocument();
     });
   });
 
+  // Teste para verificar se a descrição com mínimo de caracteres é exibida
   it('deve validar descrição com mínimo de caracteres', async () => {
     renderTransactionForm();
 
+    // Verifica se o botão de criação de transação é exibido
     await waitFor(() => {
       expect(screen.getByText('Criar Transação')).toBeInTheDocument();
     });
@@ -180,11 +193,13 @@ describe('TransactionForm', () => {
     const submitButton = screen.getByText('Criar Transação');
     fireEvent.click(submitButton);
 
+    // Verifica se a mensagem de erro para a descrição é exibida
     await waitFor(() => {
       expect(screen.getByText('Descrição deve ter pelo menos 3 caracteres')).toBeInTheDocument();
     });
   });
 
+  // Teste para verificar se o formulário de edição é exibido
   it('deve renderizar formulário de edição', async () => {
     const { transactionsApi } = require('../services/api');
     transactionsApi.getById.mockResolvedValue(mockTransaction);

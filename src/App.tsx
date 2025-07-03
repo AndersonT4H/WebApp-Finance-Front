@@ -7,6 +7,7 @@ import Transactions from './pages/Transactions';
 import AccountForm from './pages/AccountForm';
 import TransactionForm from './pages/TransactionForm';
 import TransferForm from './pages/TransferForm';
+import Analytics from './pages/Analytics';
 import Home from './pages/Home';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
         <Route path="/transactions/new" element={<TransactionForm />} />
         <Route path="/transactions/:id/edit" element={<TransactionForm />} />
         <Route path="/transfer" element={<TransferForm />} />
+        <Route path="/analytics" element={<Analytics />} />
       </Routes>
     </Layout>
   );
