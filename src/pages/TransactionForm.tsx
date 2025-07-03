@@ -12,6 +12,7 @@ const TransactionForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [formError, setFormError] = useState(''); // Estado para mensagem de erro
 
   const {
     register,
@@ -62,7 +63,7 @@ const TransactionForm: React.FC = () => {
   const onSubmit = async (data: CreateTransactionData) => {
     try {
       setLoading(true);
-      
+      setFormError(''); // Limpa erro anterior
       if (isEditing && id) {
         const updateData: UpdateTransactionData = {
           amount: data.amount,
@@ -75,10 +76,16 @@ const TransactionForm: React.FC = () => {
         await transactionsApi.create(data);
         toast.success('Transação criada com sucesso');
       }
-      
       navigate('/transactions');
-    } catch (error) {
-      toast.error(isEditing ? 'Erro ao atualizar transação' : 'Erro ao criar transação');
+    } catch (error: any) {
+      // Verifica se o erro é de saldo insuficiente
+      const msg = error?.response?.data?.message || error?.message || '';
+      if (msg.toLowerCase().includes('saldo insuficiente')) {
+        setFormError('Saldo insuficiente para realizar esta transação.');
+      } else {
+        setFormError(isEditing ? 'Erro ao atualizar transação.' : 'Saldo insuficiente para realizar esta transação.');
+      }
+      toast.error(isEditing ? 'Erro ao atualizar transação' : 'Saldo insuficiente para realizar esta transação.');
       console.error('Erro ao salvar transação:', error);
     } finally {
       setLoading(false);
@@ -273,6 +280,10 @@ const TransactionForm: React.FC = () => {
             </button>
           </div>
         </form>
+        {/* Exibe mensagem de erro abaixo do formulário, se houver */}
+        {formError && (
+          <p className="text-danger-600 text-center mt-4" data-testid="form-error">{formError}</p>
+        )}
       </div>
     </div>
   );
