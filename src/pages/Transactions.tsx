@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Plus, 
@@ -18,7 +18,6 @@ import Modal from '../components/Modal';
 
 const Transactions: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,70 +33,58 @@ const Transactions: React.FC = () => {
     transaction: null
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    filterTransactions();
-    // eslint-disable-next-line
-  }, [transactions, searchTerm, filterAccount, filterType, startDate, endDate]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [transactionsData, accountsData] = await Promise.all([
-        transactionsApi.getAll(),
-        accountsApi.getAll()
-      ]);
-      setTransactions(transactionsData);
+      
+      // Carregar contas
+      const accountsData = await accountsApi.getAll();
       setAccounts(accountsData);
+      
+      // Preparar parâmetros de filtro para o backend
+      const params: any = {};
+      
+      // Filtro por termo de busca
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+      
+      // Filtro por conta
+      if (filterAccount) {
+        params.accountId = parseInt(filterAccount);
+      }
+      
+      // Filtro por tipo
+      if (filterType) {
+        params.type = filterType;
+      }
+      
+      // Filtro por data inicial
+      if (startDate) {
+        params.startDate = startDate;
+      }
+      
+      // Filtro por data final
+      if (endDate) {
+        params.endDate = endDate;
+      }
+      
+      // Carregar transações com filtros aplicados pelo backend
+      const transactionsData = await transactionsApi.getAll(params);
+      setTransactions(transactionsData);
     } catch (error) {
       toast.error('Erro ao carregar transações');
       console.error('Erro ao carregar transações:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, filterAccount, filterType, startDate, endDate]);
 
-  const filterTransactions = () => {
-    let filtered = transactions;
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-    // Filtrar por termo de busca
-    if (searchTerm) {
-      filtered = filtered.filter(transaction =>
-        transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.account.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Filtrar por conta
-    if (filterAccount) {
-      filtered = filtered.filter(transaction => 
-        transaction.account.id === parseInt(filterAccount)
-      );
-    }
-
-    // Filtrar por tipo
-    if (filterType) {
-      filtered = filtered.filter(transaction => transaction.type === filterType);
-    }
-
-    // Filtrar por data
-    if (startDate) {
-      filtered = filtered.filter(transaction => 
-        new Date(transaction.transactionDate) >= new Date(startDate)
-      );
-    }
-
-    if (endDate) {
-      filtered = filtered.filter(transaction => 
-        new Date(transaction.transactionDate) <= new Date(endDate)
-      );
-    }
-
-    setFilteredTransactions(filtered);
-  };
+  // Como os filtros já são aplicados pelo backend, não precisamos mais filtrar no frontend
 
   const openDeleteModal = (transaction: Transaction) => {
     setDeleteModal({
@@ -294,7 +281,7 @@ const Transactions: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredTransactions.map((transaction) => (
+              {transactions.map((transaction) => (
                 <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -350,19 +337,19 @@ const Transactions: React.FC = () => {
           </table>
         </div>
 
-        {filteredTransactions.length === 0 && (
+        {transactions.length === 0 && (
           <div className="text-center py-8">
             <Receipt className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-              {transactions.length === 0 ? 'Nenhuma transação encontrada' : 'Nenhuma transação corresponde aos filtros'}
+              Nenhuma transação encontrada
             </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {transactions.length === 0 
-                ? 'Comece registrando sua primeira transação.' 
-                : 'Tente ajustar os filtros de busca.'
+              {searchTerm || filterAccount || filterType || startDate || endDate 
+                ? 'Tente ajustar os filtros de busca.' 
+                : 'Comece registrando sua primeira transação.'
               }
             </p>
-            {transactions.length === 0 && (
+            {!searchTerm && !filterAccount && !filterType && !startDate && !endDate && (
               <div className="mt-6">
                 <Link
                   to="/transactions/new"

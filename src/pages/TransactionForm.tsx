@@ -130,9 +130,7 @@ const TransactionForm: React.FC = () => {
             </label>
             <select
               id="type"
-              {...register('type', { 
-                required: 'Tipo da transação é obrigatório' 
-              })}
+              {...register('type', { required: 'Tipo é obrigatório' })}
               disabled={isEditing}
               className={`input-field bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 dark:border-gray-700 ${isEditing ? 'opacity-70 cursor-not-allowed' : ''} ${errors.type ? 'border-danger-500' : ''}`}
             >

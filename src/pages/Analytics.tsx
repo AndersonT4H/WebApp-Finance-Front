@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -54,42 +54,49 @@ const Analytics: React.FC = () => {
   const [period, setPeriod] = useState('30'); // dias
   const [selectedAccount, setSelectedAccount] = useState<string>('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [transactionsData, accountsData] = await Promise.all([
-        transactionsApi.getAll(),
-        accountsApi.getAll()
-      ]);
-      setTransactions(transactionsData);
+      
+      // Carregar contas
+      const accountsData = await accountsApi.getAll();
       setAccounts(accountsData);
+      
+      // Preparar parâmetros de filtro para o backend
+      const params: any = {};
+      
+      // Filtro por conta
+      if (selectedAccount && selectedAccount !== '') {
+        params.accountId = parseInt(selectedAccount);
+      }
+      
+      // Filtro por período
+      const daysAgo = new Date();
+      daysAgo.setDate(daysAgo.getDate() - parseInt(period));
+      params.startDate = daysAgo.toISOString().split('T')[0];
+      
+      // Definir data final como hoje
+      const today = new Date();
+      params.endDate = today.toISOString().split('T')[0];
+      
+      // Carregar transações com filtros aplicados pelo backend
+      const transactionsData = await transactionsApi.getAll(params);
+      setTransactions(transactionsData);
     } catch (error) {
       toast.error('Erro ao carregar dados para análise');
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [period, selectedAccount]);
 
-  // Filtrar transações por período e conta
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Como os filtros já são aplicados pelo backend, retornamos as transações diretamente
   const getFilteredTransactions = () => {
-    let filtered = transactions;
-
-    // Filtrar por conta
-    if (selectedAccount) {
-      filtered = filtered.filter(t => t.account.id === parseInt(selectedAccount));
-    }
-
-    // Filtrar por período
-    const daysAgo = new Date();
-    daysAgo.setDate(daysAgo.getDate() - parseInt(period));
-    filtered = filtered.filter(t => new Date(t.transactionDate) >= daysAgo);
-
-    return filtered;
+    return transactions;
   };
 
   // Dados para gráfico de pizza - Distribuição por tipo
@@ -117,11 +124,36 @@ const Analytics: React.FC = () => {
       return acc;
     }, {} as Record<string, number>);
 
-    return Object.entries(distribution).map(([account, value]) => ({
-      name: account,
-      value: Math.abs(value),
-      fill: COLORS.corrente
-    }));
+    return Object.entries(distribution).map(([accountName, value]) => {
+      // Encontrar a conta correspondente para obter o tipo
+      const account = accounts.find(acc => acc.name === accountName);
+      let fillColor = COLORS.corrente;
+      
+      if (account) {
+        switch (account.type) {
+          case 'Corrente':
+            fillColor = COLORS.corrente;
+            break;
+          case 'Poupança':
+            fillColor = COLORS.poupanca;
+            break;
+          case 'Crédito':
+            fillColor = COLORS.credito;
+            break;
+          case 'Investimento':
+            fillColor = COLORS.investimento;
+            break;
+          default:
+            fillColor = COLORS.corrente;
+        }
+      }
+
+      return {
+        name: accountName,
+        value: Math.abs(value),
+        fill: fillColor
+      };
+    });
   };
 
   // Dados para gráfico de barras - Receitas vs Despesas mensais
